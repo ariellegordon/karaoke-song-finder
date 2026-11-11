@@ -1,0 +1,4 @@
+# Raw download; songs.json/songs.js are generated from it
+data/catalog.csv
+.DS_Store
+__pycache__/
