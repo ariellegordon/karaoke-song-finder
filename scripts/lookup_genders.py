@@ -9,12 +9,14 @@ Each artist gets one of:
   male / female  - a solo person
   mixed          - several people, both male and female (e.g. "A & B")
   group          - a band or group (MusicBrainz doesn't record its singer's gender)
+  various        - a soundtrack, film/musical, or compilation (various singers)
   unknown        - no confident match
 
 Usage:
   python3 scripts/lookup_genders.py            # next 500 artists
   python3 scripts/lookup_genders.py --limit 2000
   python3 scripts/lookup_genders.py --all      # everything left (takes hours)
+  python3 scripts/lookup_genders.py --retry-unknown   # re-check artists marked unknown
 """
 import argparse
 import json
@@ -37,6 +39,27 @@ API = "https://musicbrainz.org/ws/2/artist/"
 USER_AGENT = "KaraokeSongSearcher/0.1 (personal project)"
 DELAY = 1.1  # MusicBrainz allows 1 request per second
 MIN_SCORE = 90
+EXACT_MIN_SCORE = 75  # a lower score is fine when the name matches exactly
+
+# Credits that are soundtracks, films, musicals or compilations, not one singer.
+VARIOUS_RE = re.compile(
+    r"\((?:[^)]*\b(?:film|movie|musical|series|soundtrack|show|cast)\b[^)]*)\)"
+    r"|\b(?:the movie|soundtrack|original cast|broadway|musical)\b"
+    r"|\bsongs$",
+    re.I,
+)
+
+# Fixes for artists that MusicBrainz search gets wrong or can't find.
+OVERRIDES = {
+    "Miley Cyrus": "female",
+    "Dirty Dancing": "various",
+    "The Bodyguard": "various",
+    "The Greatest Showman": "various",
+    "Mulan": "various",
+    "James Bond": "various",
+    "8 Mile": "various",
+    "Les Dix Commandements": "various",
+}
 
 # Splits "Elton John & Kiki Dee", "X feat. Y", "A, B and C", "A x B"
 SPLIT_RE = re.compile(r"\s*(?:&|,|\+|\band\b|\bwith\b|\bx\b|\bvs\.?|\bfeat\.?|\bft\.?|\bfeaturing\b)\s*", re.I)
@@ -50,13 +73,23 @@ def normalize(name):
     return re.sub(r"[^a-z0-9]", "", name)
 
 
+def variants(name):
+    """Spellings to try: as given, without "(...)", "A / B" -> "A/B", without "The"."""
+    out = [name]
+    no_paren = re.sub(r"\s*\([^)]*\)", "", name).strip()
+    for v in (no_paren, re.sub(r"\s*/\s*", "/", no_paren), re.sub(r"^the\s+", "", no_paren, flags=re.I)):
+        if v and v not in out:
+            out.append(v)
+    return out
+
+
 def search(name):
     """Return the best MusicBrainz artist match for name, or None."""
     wait = DELAY - (time.time() - _last_request[0])
     if wait > 0:
         time.sleep(wait)
     query = 'artist:"{}"'.format(name.replace('"', ""))
-    url = API + "?" + urllib.parse.urlencode({"query": query, "fmt": "json", "limit": 5})
+    url = API + "?" + urllib.parse.urlencode({"query": query, "fmt": "json", "limit": 10})
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     for attempt in range(4):
         _last_request[0] = time.time()
@@ -76,13 +109,16 @@ def search(name):
             raise
 
     target = normalize(name)
-    candidates = [a for a in data.get("artists", []) if int(a.get("score", 0)) >= MIN_SCORE]
+    # Skip untyped stub entries (e.g. bare aliases); they carry no gender/type.
+    artists = [a for a in data.get("artists", []) if a.get("type") or a.get("gender")]
     # Prefer an exact name (or alias) match; fall back to the top result.
-    for a in candidates:
+    for a in artists:
+        if int(a.get("score", 0)) < EXACT_MIN_SCORE:
+            break
         names = [a.get("name", "")] + [al.get("name", "") for al in a.get("aliases", []) or []]
         if any(normalize(n) == target for n in names):
             return a
-    return candidates[0] if candidates and int(candidates[0]["score"]) == 100 else None
+    return artists[0] if artists and int(artists[0]["score"]) == 100 else None
 
 
 def classify(artist):
@@ -113,9 +149,14 @@ def combine(labels):
 
 
 def lookup(name):
-    match = search(name)
-    if match is not None:
-        return classify(match)
+    if name in OVERRIDES:
+        return OVERRIDES[name]
+    if VARIOUS_RE.search(name):
+        return "various"
+    for v in variants(name):
+        match = search(v)
+        if match is not None:
+            return classify(match)
     # Multi-artist credit like "Elton John & Kiki Dee": look up each part.
     parts = [p for p in SPLIT_RE.split(name) if p.strip()]
     if len(parts) > 1:
@@ -134,6 +175,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--limit", type=int, default=500, help="how many new artists to look up (default 500)")
     parser.add_argument("--all", action="store_true", help="look up every remaining artist")
+    parser.add_argument("--retry-unknown", action="store_true", help="re-check artists marked unknown, then stop")
     args = parser.parse_args()
 
     if not os.path.exists(SONGS_JSON):
@@ -153,8 +195,11 @@ def main():
             seen.add(s[2])
             ordered.append(s[2])
 
-    todo = [a for a in ordered if a not in results]
-    if not args.all:
+    if args.retry_unknown:
+        todo = [a for a in ordered if results.get(a) == "unknown"]
+    else:
+        todo = [a for a in ordered if a not in results]
+    if not args.all and not args.retry_unknown:
         todo = todo[: args.limit]
     print("{} artists total, {} done, looking up {} now.".format(len(ordered), len(results), len(todo)))
 
@@ -174,6 +219,10 @@ def main():
         save(results)
 
     counts = {}
+    for name in OVERRIDES:  # keep manual fixes even for artists done earlier
+        if name in results:
+            results[name] = OVERRIDES[name]
+    save(results)
     for v in results.values():
         counts[v] = counts.get(v, 0) + 1
     print("Done. {} of {} artists looked up: {}".format(len(results), len(ordered), counts))
