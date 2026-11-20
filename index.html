@@ -230,8 +230,7 @@
     .map(function (d) { return [d, (d === "early" ? "Before " + EARLY : d + "s")]; }));
 
   var looked = Object.keys(genders).filter(function (a) { return genders[a] !== "unknown"; }).length;
-  $("sub").textContent = songs.length.toLocaleString() + " songs from the KaraFun catalog · singer info for " +
-    looked.toLocaleString() + " artists so far";
+  $("sub").textContent = songs.length.toLocaleString() + " songs from the KaraFun catalog";
 
   var controls = ["q", "genre", "gender", "duet", "decade", "lang", "clean"];
   var matches = [], shown = 0;
