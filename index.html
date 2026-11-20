@@ -6,7 +6,7 @@
 <title>Karaoke Song Finder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Emilys+Candy&display=swap" rel="stylesheet">
 <style>
   /* Curly Girly: swirls, hearts, stars and polka dots in hot pink, black, turquoise, lime and purple. */
   :root {
@@ -52,7 +52,7 @@
   ::selection { background: var(--accent-bright); color: #fff; }
   body {
     margin: 0; color: var(--text);
-    font: 500 15px/1.5 "Quicksand", "Avenir Next", "Trebuchet MS", sans-serif;
+    font: 500 15px/1.5 "Emilys Candy", "Avenir Next", "Trebuchet MS", sans-serif;
     background-color: var(--bg);
     background-image: var(--pattern), radial-gradient(var(--dots) 2px, transparent 2.5px);
     background-size: 180px 180px, 24px 24px;
@@ -62,17 +62,17 @@
 
   header { text-align: center; margin-bottom: 22px; }
   h1 {
-    font: 400 clamp(46px, 11vw, 72px)/1.05 "Great Vibes", "Snell Roundhand", cursive;
+    font: 400 clamp(46px, 11vw, 72px)/1.05 "Emilys Candy", "Snell Roundhand", cursive;
     color: var(--accent); margin: 0;
     text-shadow: 2px 2px 0 var(--turquoise-soft), 4px 4px 0 var(--accent-soft);
   }
-  h1::before, h1::after { content: "♥"; font: 700 .32em "Quicksand", sans-serif;
+  h1::before, h1::after { content: "♥"; font: 700 .32em "Emilys Candy", sans-serif;
     color: var(--turquoise); vertical-align: middle; margin: 0 .4em; }
   .flourish { display: block; width: 220px; max-width: 70%; height: 22px; margin: 2px auto 6px; color: var(--accent-bright); }
   .sub { color: var(--muted); margin: 0; font-size: 14px; font-weight: 600; }
 
   .search {
-    width: 100%; padding: 13px 20px; font: 600 16px "Quicksand", sans-serif;
+    width: 100%; padding: 13px 20px; font: 600 16px "Emilys Candy", sans-serif;
     border: 2px dashed var(--accent-bright); border-radius: 999px;
     background: var(--surface); color: var(--text);
     box-shadow: 0 4px 0 var(--accent-soft);
@@ -84,7 +84,7 @@
   label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; color: var(--accent); }
   label::first-letter { font-size: 1.15em; }
   select {
-    padding: 9px 14px; font: 600 14px "Quicksand", sans-serif;
+    padding: 9px 14px; font: 600 14px "Emilys Candy", sans-serif;
     border: 2px solid var(--border); border-radius: 999px;
     background: var(--surface); color: var(--text);
   }
@@ -94,7 +94,7 @@
   .bar label { flex-direction: row; align-items: center; font-weight: 600; font-size: 14px; gap: 6px; color: var(--muted); }
   input[type=checkbox] { accent-color: var(--accent-bright); width: 16px; height: 16px; }
   button.link { background: none; border: 0; color: var(--accent); cursor: pointer;
-    font: 700 14px "Quicksand", sans-serif; padding: 0; text-decoration: underline wavy; text-underline-offset: 4px; }
+    font: 700 14px "Emilys Candy", sans-serif; padding: 0; text-decoration: underline wavy; text-underline-offset: 4px; }
 
   ul { list-style: none; margin: 0; padding: 0; }
   li.song {
@@ -118,7 +118,7 @@
   .more {
     display: block; margin: 20px auto; padding: 11px 26px; border-radius: 999px; border: 0;
     background: linear-gradient(135deg, var(--accent-bright), var(--purple)); color: #fff;
-    font: 700 15px "Quicksand", sans-serif; cursor: pointer; box-shadow: 0 4px 0 var(--accent-soft);
+    font: 700 15px "Emilys Candy", sans-serif; cursor: pointer; box-shadow: 0 4px 0 var(--accent-soft);
   }
   .more::after { content: " ✧"; }
   .empty, .error { text-align: center; color: var(--muted); padding: 40px 0; font-weight: 600; }
@@ -147,6 +147,7 @@
         <option value="female">Female</option>
         <option value="mixed">Male + female</option>
         <option value="group">Band / group</option>
+        <option value="various">Soundtrack / various</option>
         <option value="unknown">Unknown / not looked up yet</option>
       </select>
     </label>
@@ -179,7 +180,7 @@
 (function () {
   var PAGE = 100;
   var EARLY = 1950; // decades before this are grouped together
-  var GENDER_LABEL = { male: "Male", female: "Female", mixed: "Male + female", group: "Band / group" };
+  var GENDER_LABEL = { male: "Male", female: "Female", mixed: "Male + female", group: "Band / group", various: "Soundtrack / various" };
   var $ = function (id) { return document.getElementById(id); };
 
   if (!window.SONGS) {
